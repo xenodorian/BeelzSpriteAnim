@@ -44,14 +44,17 @@ const src = {
   b8: RAW + "b8.webp",
   b10: RAW + "b10.webp",
   b37: RAW + "b37.webp",
+  e1: RAW + "energy.png",
+  e2: RAW + "energy-h.png",
+  e3: RAW + "energy-v.png",
 }
 for (const url of Object.values(src)) { const i = new Image(); i.src = url }
-new Image().src = RAW + "energy.png"
 
 const sprite = document.getElementById("sprite")
 const slash = document.getElementById("slash")
 let state = "idle"
 let timer = null
+let energyTimer = null
 let right = false
 let left = false
 
@@ -60,7 +63,21 @@ function show(name) {
   sprite.dataset.name = name
   sprite.src = src[name]
 }
-function setSlash(on) { slash.style.display = on ? "block" : "none" }
+function setSlash(on) {
+  if (energyTimer) { clearTimeout(energyTimer); energyTimer = null }
+  if (!on) { slash.style.display = "none"; return }
+  const frames = [src.e1, src.e2, src.e3, src.e1]
+  let i = 0
+  slash.style.display = "block"
+  slash.src = frames[0]
+  function step() {
+    i++
+    if (i >= frames.length) return
+    slash.src = frames[i]
+    energyTimer = setTimeout(step, 25)
+  }
+  energyTimer = setTimeout(step, 25)
+}
 function clearTimer() {
   if (timer) { clearTimeout(timer); timer = null }
 }
