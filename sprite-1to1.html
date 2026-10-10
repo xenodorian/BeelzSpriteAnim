@@ -7,9 +7,13 @@
 <style>
   html, body { margin: 0; height: 100%; background: #16181e; overflow: hidden; }
   canvas { position: fixed; left: 0; top: 0; z-index: 1; }
-  #sprite { position: fixed; left: 0; top: 0; opacity: 0; pointer-events: none; z-index: 0; }
+  #sprite {
+    position: fixed; z-index: 2; margin: 0;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
   #bar {
-    position: fixed; z-index: 2; top: 12px; left: 12px;
+    position: fixed; z-index: 3; top: 12px; left: 12px;
     display: flex; gap: 8px; align-items: center;
     font: 14px/1.2 ui-sans-serif, system-ui, sans-serif; color: #eee;
   }
@@ -47,48 +51,45 @@ function screenPixels() {
   }
 }
 
-function visibleBox(dpr) {
-  const view = window.visualViewport
-  const cssX = view ? view.offsetLeft : 0
-  const cssY = view ? view.offsetTop : 0
-  const cssW = view ? view.width : window.innerWidth
-  const cssH = view ? view.height : window.innerHeight
-  return {
-    x: Math.round(cssX * dpr),
-    y: Math.round(cssY * dpr),
-    w: Math.round(cssW * dpr),
-    h: Math.round(cssH * dpr),
-  }
-}
-
-function fit() {
+function paint() {
   const { cssW, cssH, pxW, pxH } = screenPixels()
-  canvas.width = pxW
-  canvas.height = pxH
-  canvas.style.width = cssW + "px"
-  canvas.style.height = cssH + "px"
-  ctx.imageSmoothingEnabled = false
-}
-
-function frame() {
-  const { dpr, pxW, pxH } = screenPixels()
-  if (canvas.width !== pxW || canvas.height !== pxH) fit()
+  if (canvas.width !== pxW || canvas.height !== pxH) {
+    canvas.width = pxW
+    canvas.height = pxH
+    canvas.style.width = cssW + "px"
+    canvas.style.height = cssH + "px"
+  }
   ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.imageSmoothingEnabled = false
   ctx.fillStyle = SKY
   ctx.fillRect(0, 0, pxW, pxH)
+}
 
+function place() {
+  const dpr = window.devicePixelRatio || 1
   const sw = sprite.naturalWidth
   const sh = sprite.naturalHeight
-  if (sw && sh) {
-    const view = visibleBox(dpr)
-    const sole = (sw === 168 && sh === 256) ? KNOWN_SOLE : sh
-    const x = view.x + Math.round((view.w - sw) / 2)
-    const y = view.y + view.h - sole
-    ctx.drawImage(sprite, x, y)
-  }
-  requestAnimationFrame(frame)
+  if (!sw || !sh) return
+  const view = window.visualViewport
+  const viewX = view ? view.offsetLeft : 0
+  const viewY = view ? view.offsetTop : 0
+  const viewW = view ? view.width : window.innerWidth
+  const viewH = view ? view.height : window.innerHeight
+  const sole = (sw === 168 && sh === 256) ? KNOWN_SOLE : sh
+  const cssW = sw / dpr
+  const cssH = sh / dpr
+  sprite.style.width = cssW + "px"
+  sprite.style.height = cssH + "px"
+  sprite.style.left = (viewX + (viewW - cssW) / 2) + "px"
+  sprite.style.top = (viewY + viewH - sole / dpr) + "px"
 }
+
+function fit() {
+  paint()
+  place()
+}
+
+sprite.addEventListener("load", fit)
 
 document.getElementById("full").addEventListener("click", () => {
   if (document.fullscreenElement) document.exitFullscreen()
@@ -108,7 +109,6 @@ addEventListener("fullscreenchange", fit)
 if (window.visualViewport) visualViewport.addEventListener("resize", fit)
 
 fit()
-requestAnimationFrame(frame)
 </script>
 </body>
 </html>
