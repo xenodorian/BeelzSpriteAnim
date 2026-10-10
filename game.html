@@ -133,7 +133,7 @@ function startSlash() {
   function windNext() {
     if (i >= wind.length) { hit(); return }
     show(wind[i++])
-    after(100, windNext)
+    after(50, windNext)
   }
   function hit() {
     state = "slashHit"
@@ -155,7 +155,7 @@ function startSlash() {
     function next() {
       if (j >= steps.length) { finishSlash(); return }
       show(steps[j++])
-      after(100, next)
+      after(50, next)
     }
     next()
   }
