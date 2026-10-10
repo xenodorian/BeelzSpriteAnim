@@ -1,0 +1,88 @@
+name: Build corridor key pixel-art animated WebP variants frames 4-9
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-corridorkey-pixelart-webp-variants-frames-04-09.yml"
+      - "frames/corridorkey/f_0[4-9].png"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Pillow
+        run: python -m pip install pillow
+      - name: Generate pixel-art animated WebP variants
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+
+          paths = [Path("frames/corridorkey") / f"f_{i:02d}.png" for i in range(4, 10)]
+          missing = [str(p) for p in paths if not p.is_file()]
+          if missing:
+              raise SystemExit("Missing frames: " + ", ".join(missing))
+
+          variants = [
+              ("corridorkey_frames_04-09_pixelart_1-4.webp", "scale", 4),
+              ("corridorkey_frames_04-09_pixelart_1-2.webp", "scale", 2),
+              ("corridorkey_frames_04-09_pixelart_h256.webp", "height", 256),
+              ("corridorkey_frames_04-09_pixelart_h128.webp", "height", 128),
+          ]
+
+          originals = []
+          for path in paths:
+              with Image.open(path) as im:
+                  originals.append(im.convert("RGBA"))
+
+          for filename, mode, value in variants:
+              frames = []
+              for original in originals:
+                  w, h = original.size
+                  if mode == "scale":
+                      size = (max(1, w // value), max(1, h // value))
+                  else:
+                      size = (max(1, round(w * value / h)), value)
+                  reduced = original.resize(size, Image.Resampling.NEAREST)
+                  quantized = reduced.quantize(colors=32, method=Image.Quantize.FASTOCTREE)
+                  frames.append(quantized.convert("RGBA"))
+                  reduced.close()
+              frames[0].save(
+                  filename,
+                  format="WEBP",
+                  save_all=True,
+                  append_images=frames[1:],
+                  duration=250,
+                  loop=0,
+                  lossless=True,
+                  method=6,
+                )
+              print(f"{filename}: {frames[0].width}x{frames[0].height}, {len(frames)} frames, 250 ms/frame")
+              for frame in frames:
+                  frame.close()
+
+          for frame in originals:
+              frame.close()
+          PY
+      - name: Commit generated animated WebP variants
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+users.noreply.github.com"
+          git add corridorkey_frames_04-09_pixelart_1-4.webp corridorkey_frames_04-09_pixelart_1-2.webp corridorkey_frames_04-09_pixelart_h256.webp corridorkey_frames_04-09_pixelart_h128.webp
+          if git diff --cached --quiet; then
+            echo "Animated WebP variants unchanged"
+          else
+            git commit -m "Generate pixel-art animated WebP variants for frames 4-9"
+            git push
+          fi
