@@ -1,0 +1,64 @@
+name: Build corridor key GIF frames 5-14
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-corridorkey-gif-frames-05-14.yml"
+      - "frames/corridorkey/*.png"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Pillow
+        run: python -m pip install pillow
+      - name: Build GIF from frames 5 through 14
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+
+          paths = [Path("frames/corridorkey") / f"f_{i:02d}.png" for i in range(5, 15)]
+          missing = [str(path) for path in paths if not path.is_file()]
+          if missing:
+              raise SystemExit("Missing frame files: " + ", ".join(missing))
+          frames = []
+          for path in paths:
+              with Image.open(path) as im:
+                  frames.append(im.convert("RGBA").copy())
+          size = frames[0].size
+          if any(frame.size != size for frame in frames):
+              raise SystemExit("All PNG frames must have the same dimensions")
+          frames[0].save(
+              "corridorkey_frames_05-14.gif",
+              save_all=True,
+              append_images=frames[1:],
+              duration=100,
+              loop=0,
+              disposal=2,
+              optimize=False,
+          )
+          print(f"Created GIF from frames 5-14 ({len(frames)} frames, {size[0]}x{size[1]})")
+          PY
+      - name: Commit GIF to repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+users.noreply.github.com"
+          git add corridorkey_frames_05-14.gif
+          if git diff --cached --quiet; then
+            echo "GIF unchanged"
+          else
+            git commit -m "Build corridor key GIF from frames 5-14"
+            git push
+          fi
