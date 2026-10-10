@@ -1,0 +1,71 @@
+name: Build corridor key pixel-art GIF frames 4-9
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-corridorkey-pixelart-gif-frames-04-09.yml"
+      - "frames/corridorkey/f_0[4-9].png"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Pillow
+        run: python -m pip install pillow
+      - name: Pixelate frames 4 through 9 and build GIF
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+
+          paths = [Path("frames/corridorkey") / f"f_{i:02d}.png" for i in range(4, 10)]
+          missing = [str(path) for path in paths if not path.is_file()]
+          if missing:
+              raise SystemExit("Missing frame files: " + ", ".join(missing))
+
+          frames = []
+          for path in paths:
+              with Image.open(path) as source:
+                  frame = source.convert("RGBA")
+              width, height = frame.size
+              # Reduce resolution to create visible chunky pixels, then enlarge
+              # with nearest-neighbor sampling to preserve hard pixel edges.
+              small_size = (max(1, width // 8), max(1, height // 8))
+              frame = frame.resize(small_size, Image.Resampling.NEAREST)
+              frame = frame.resize((width, height), Image.Resampling.NEAREST)
+              frame = frame.quantize(colors=32, method=Image.Quantize.FASTOCTREE).convert("RGBA")
+              frames.append(frame)
+
+          frames[0].save(
+              "corridorkey_frames_04-09_pixelart.gif",
+              save_all=True,
+              append_images=frames[1:],
+              duration=100,
+              loop=0,
+              disposal=2,
+              optimize=False,
+          )
+          print(f"Created pixel-art GIF from frames 4-9 ({len(frames)} frames, palette limited to 32 colors)")
+          PY
+      - name: Commit pixel-art GIF to repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+users.noreply.github.com"
+          git add corridorkey_frames_04-09_pixelart.gif
+          if git diff --cached --quiet; then
+            echo "Pixel-art GIF unchanged"
+          else
+            git commit -m "Build pixel-art corridor key GIF from frames 4-9"
+            git push
+          fi
