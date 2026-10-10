@@ -16,9 +16,10 @@
   #sprite { position: absolute; inset: 0; width: 100%; height: 100%; }
   #slash {
     position: absolute; left: 50%; top: 39.7%;
-    width: calc(100% * 730 / 480); height: auto;
     transform: translate(-50%, -50%);
     display: none;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
   }
 </style>
 </head>
@@ -60,6 +61,16 @@ function show(name) {
   sprite.src = src[name]
 }
 function setSlash(on) { slash.style.display = on ? "block" : "none" }
+function fitSlash() {
+  const dpr = window.devicePixelRatio || 1
+  if (!slash.naturalWidth) return
+  slash.style.width = (slash.naturalWidth / dpr) + "px"
+  slash.style.height = (slash.naturalHeight / dpr) + "px"
+}
+slash.addEventListener("load", fitSlash)
+addEventListener("resize", fitSlash)
+if (window.visualViewport) visualViewport.addEventListener("resize", fitSlash)
+if (slash.complete) fitSlash()
 function clearTimer() {
   if (timer) { clearTimeout(timer); timer = null }
 }
