@@ -13,19 +13,29 @@
     transform: translateX(-50%);
     pointer-events: none;
   }
-  #sprite { position: absolute; inset: 0; width: 100%; height: 100%; }
-  #slash {
-    position: absolute; left: 50%; top: calc(39.7% + 100% * 17 / 730);
-    width: 200%; height: auto;
-    transform: translate(-50%, -50%) scaleY(0.1);
-    transform-origin: center center;
+  #sprite { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
+  #glow, #slash {
+    position: absolute; left: 50%;
+    top: calc(39.7% + 100% * 17 / 730);
+    width: 200%;
+    aspect-ratio: 960 / 34;
+    height: auto;
+    transform: translate(-50%, -50%);
     display: none;
   }
+  #glow {
+    z-index: 2;
+    filter: blur(10px) brightness(1.8);
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(1.35);
+  }
+  #slash { z-index: 3; }
 </style>
 </head>
 <body>
 <div id="stage">
   <img id="sprite" alt="">
+  <img id="glow" alt="" src="https://raw.githubusercontent.com/xenodorian/BeelzSpriteAnim/main/game/energy.png">
   <img id="slash" alt="" src="https://raw.githubusercontent.com/xenodorian/BeelzSpriteAnim/main/game/energy.png">
 </div>
 <script>
@@ -52,6 +62,7 @@ for (const url of Object.values(src)) { const i = new Image(); i.src = url }
 
 const sprite = document.getElementById("sprite")
 const slash = document.getElementById("slash")
+const glow = document.getElementById("glow")
 let state = "idle"
 let timer = null
 let energyTimer = null
@@ -65,15 +76,26 @@ function show(name) {
 }
 function setSlash(on) {
   if (energyTimer) { clearTimeout(energyTimer); energyTimer = null }
-  if (!on) { slash.style.display = "none"; return }
+  if (!on) {
+    slash.style.display = "none"
+    glow.style.display = "none"
+    return
+  }
   const frames = [src.e1, src.e2, src.e3, src.e1]
+  const nudge = [17, 14, 20, 17]
   let i = 0
-  slash.style.display = "block"
-  slash.src = frames[0]
+  function showFrame() {
+    slash.src = frames[i]
+    glow.src = frames[i]
+    slash.style.top = "calc(39.7% + 100% * " + nudge[i] + " / 730)"
+    slash.style.display = "block"
+    glow.style.display = "block"
+  }
+  showFrame()
   function step() {
     i++
     if (i >= frames.length) return
-    slash.src = frames[i]
+    showFrame()
     energyTimer = setTimeout(step, 25)
   }
   energyTimer = setTimeout(step, 25)
