@@ -86,7 +86,7 @@ function startBlock() {
     if (!left) { startRecover(); return }
     if (i >= steps.length) { state = "blocking"; show("b18"); return }
     show(steps[i++])
-    after(90, next)
+    after(50, next)
   }
   next()
 }
