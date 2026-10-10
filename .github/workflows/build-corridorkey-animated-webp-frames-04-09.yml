@@ -50,7 +50,15 @@ jobs:
               lossless=True,
               method=6,
           )
-          print(f"{output}: {frames[0].width}x{frames[0].height}, {len(frames)} frames")
+          with Image.open(output) as check:
+              durations = []
+              for index in range(check.n_frames):
+                  check.seek(index)
+                  durations.append(check.info.get("duration"))
+              print(f"VERIFY {output}: frames={check.n_frames}, durations_ms={durations}, size={check.size}")
+              if check.n_frames != 6 or durations != [100] * 6:
+                  raise SystemExit(f"Encoded timing/frame verification failed: {check.n_frames} frames, {durations}")
+          print(f"{output}: {frames[0].width}x{frames[0].height}, {len(frames)} frames, verified 100 ms/frame")
           for frame in frames:
               frame.close()
           PY
