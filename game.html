@@ -40,6 +40,9 @@ const src = {
   b31: RAW + "b31.webp",
   b35: RAW + "b35.webp",
   b33: RAW + "b33.webp",
+  b8: RAW + "b8.webp",
+  b10: RAW + "b10.webp",
+  b37: RAW + "b37.webp",
 }
 for (const url of Object.values(src)) { const i = new Image(); i.src = url }
 new Image().src = RAW + "slash.png"
@@ -114,13 +117,25 @@ function startRecover() {
   }
   next()
 }
+function finishSlash() {
+  const resumeLeft = left
+  const resumeRight = right
+  goIdle()
+  if (resumeLeft) startBlock()
+  else if (resumeRight) startWalk()
+}
 function startSlash() {
   clearTimer()
   state = "slashWind"
   setSlash(false)
-  show("b12")
-  after(250, () => {
-    if (state !== "slashWind") return
+  const wind = ["b8", "b10", "b12"]
+  let i = 0
+  function windNext() {
+    if (i >= wind.length) { hit(); return }
+    show(wind[i++])
+    after(100, windNext)
+  }
+  function hit() {
     state = "slashHit"
     show("b33")
     setSlash(true)
@@ -129,20 +144,28 @@ function startSlash() {
       setSlash(false)
       after(100, () => {
         if (state !== "slashHit") return
-        const resumeLeft = left
-        const resumeRight = right
-        goIdle()
-        if (resumeLeft) startBlock()
-        else if (resumeRight) startWalk()
+        back()
       })
     })
-  })
+  }
+  function back() {
+    state = "slashBack"
+    const steps = ["b35", "b37"]
+    let j = 0
+    function next() {
+      if (j >= steps.length) { finishSlash(); return }
+      show(steps[j++])
+      after(100, next)
+    }
+    next()
+  }
+  windNext()
 }
 
 function pressRight() {
   if (right) return
   right = true
-  if (state === "slashWind" || state === "slashHit") return
+  if (state === "slashWind" || state === "slashHit" || state === "slashBack") return
   if (state === "idle") startWalk()
   else if (state === "toBlock" || state === "blocking") { left = false; startWalk() }
 }
@@ -154,7 +177,7 @@ function releaseRight() {
 function pressLeft() {
   if (left) return
   left = true
-  if (state === "slashWind" || state === "slashHit") return
+  if (state === "slashWind" || state === "slashHit" || state === "slashBack") return
   if (state === "idle") startBlock()
   else if (state === "toWalk" || state === "walking") { right = false; startBlock() }
 }
@@ -164,7 +187,7 @@ function releaseLeft() {
   if (state === "toBlock" || state === "blocking") startRecover()
 }
 function pressSlash() {
-  if (state === "slashWind" || state === "slashHit") return
+  if (state === "slashWind" || state === "slashHit" || state === "slashBack") return
   if (state === "toBlock" || state === "blocking" || state === "fromBlock") return
   if (state === "toWalk" || state === "walking") right = false
   startSlash()
