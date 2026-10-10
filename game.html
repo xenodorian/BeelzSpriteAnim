@@ -37,9 +37,8 @@ const src = {
   b9: RAW + "b9.webp",
   b12: RAW + "b12.webp",
   b18: RAW + "b18.webp",
-  b29: RAW + "b29.webp",
-  b32: RAW + "b32.webp",
-  b36: RAW + "b36.webp",
+  b31: RAW + "b31.webp",
+  b35: RAW + "b35.webp",
 }
 for (const url of Object.values(src)) { const i = new Image(); i.src = url }
 
@@ -93,7 +92,7 @@ function startBlock() {
 function startRecover() {
   clearTimer()
   state = "fromBlock"
-  const steps = ["b29", "b32", "b36"]
+  const steps = ["b31", "b35"]
   let i = 0
   function next() {
     if (i >= steps.length) {
