@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>1:1 sprite on a screen-sized canvas</title>
 <style>
-  html, body { margin: 0; height: 100%; background: #16181e; overflow: hidden; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
   canvas { position: fixed; left: 0; top: 0; z-index: 1; }
   #sprite {
     position: fixed; z-index: 2; margin: 0;
@@ -29,16 +29,16 @@
   <button id="full" type="button">Fullscreen</button>
   <label>Open sprite<input id="file" type="file" accept="image/webp,image/gif,image/png,image/*"></label>
 </div>
-<img id="sprite" alt="" src="https://raw.githubusercontent.com/xenodorian/BeelzSpriteAnim/main/corridorkey_frames_04-09_pixelart_h256_150ms.webp">
+<img id="sprite" alt="" src="https://raw.githubusercontent.com/xenodorian/BeelzSpriteAnim/main/attack_from_f01.webp">
 <canvas id="view"></canvas>
 <script>
 const canvas = document.getElementById("view")
 const ctx = canvas.getContext("2d", { alpha: false })
 const sprite = document.getElementById("sprite")
 
-const SKY = "#16181e"
-// Lowest boot sole in the 168×256 cell. Other images sit on their own bottom edge.
-const KNOWN_SOLE = 240
+const SKY = "#000000"
+// Boot sole in image pixels. The attack cell is 168×256 with the sole at 244.
+const KNOWN_SOLE = 244
 
 function screenPixels() {
   const dpr = window.devicePixelRatio || 1
