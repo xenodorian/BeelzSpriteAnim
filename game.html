@@ -6,26 +6,39 @@
 <title>Sprite</title>
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; touch-action: none; }
-  #sprite {
+  #stage {
     position: fixed; left: 50%; bottom: 0; z-index: 1;
-    height: min(78vh, 730px); width: auto;
+    height: min(78vh, 730px);
+    aspect-ratio: 480 / 730;
     transform: translateX(-50%);
     pointer-events: none;
   }
+  #sprite { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #slash {
+    position: absolute; left: 50%; top: 39.7%;
+    width: calc(100% * 730 / 480); height: auto;
+    transform: translate(-50%, -50%);
+    display: none;
+  }
   .pad {
-    position: fixed; z-index: 2; bottom: 18px;
-    width: 42vw; height: 72px;
+    position: fixed; z-index: 2; bottom: 16px;
+    width: 30vw; height: 64px;
     font: 16px/1 ui-sans-serif, system-ui, sans-serif;
     color: #eee; background: #1a1a1a; border: 1px solid #444;
   }
-  #left { left: 12px; }
-  #right { right: 12px; }
-  #left.down, #right.down { background: #333; }
+  #left { left: 8px; }
+  #right { right: 8px; }
+  #slashbtn { left: 50%; transform: translateX(-50%); }
+  .pad.down { background: #333; }
 </style>
 </head>
 <body>
-<img id="sprite" alt="">
+<div id="stage">
+  <img id="sprite" alt="">
+  <img id="slash" alt="" src="https://raw.githubusercontent.com/xenodorian/BeelzSpriteAnim/main/game/slash.png">
+</div>
 <button id="left" class="pad" type="button">Block</button>
+<button id="slashbtn" class="pad" type="button">Slash</button>
 <button id="right" class="pad" type="button">Walk</button>
 <script>
 const RAW = "https://raw.githubusercontent.com/xenodorian/BeelzSpriteAnim/main/game/"
@@ -39,10 +52,14 @@ const src = {
   b18: RAW + "b18.webp",
   b31: RAW + "b31.webp",
   b35: RAW + "b35.webp",
+  b33: RAW + "b33.webp",
 }
 for (const url of Object.values(src)) { const i = new Image(); i.src = url }
+new Image().src = RAW + "slash.png"
 
 const sprite = document.getElementById("sprite")
+const slash = document.getElementById("slash")
+const slashBtn = document.getElementById("slashbtn")
 let state = "idle"
 let timer = null
 let right = false
@@ -53,18 +70,22 @@ function show(name) {
   sprite.dataset.name = name
   sprite.src = src[name]
 }
+function setSlash(on) { slash.style.display = on ? "block" : "none" }
 function clearTimer() {
   if (timer) { clearTimeout(timer); timer = null }
 }
 function goIdle() {
   clearTimer()
   state = "idle"
+  setSlash(false)
+  slashBtn.classList.remove("down")
   show("idle")
 }
 function after(ms, fn) { timer = setTimeout(fn, ms) }
 
 function startWalk() {
   clearTimer()
+  setSlash(false)
   state = "toWalk"
   const steps = ["w2", "w3"]
   let i = 0
@@ -78,6 +99,7 @@ function startWalk() {
 }
 function startBlock() {
   clearTimer()
+  setSlash(false)
   state = "toBlock"
   const steps = ["b9", "b12"]
   let i = 0
@@ -91,6 +113,7 @@ function startBlock() {
 }
 function startRecover() {
   clearTimer()
+  setSlash(false)
   state = "fromBlock"
   const steps = ["b31", "b35"]
   let i = 0
@@ -106,11 +129,37 @@ function startRecover() {
   }
   next()
 }
+function startSlash() {
+  clearTimer()
+  state = "slashWind"
+  setSlash(false)
+  slashBtn.classList.add("down")
+  show("b12")
+  after(250, () => {
+    if (state !== "slashWind") return
+    state = "slashHit"
+    show("b33")
+    setSlash(true)
+    after(100, () => {
+      if (state !== "slashHit") return
+      setSlash(false)
+      after(100, () => {
+        if (state !== "slashHit") return
+        const resumeLeft = left
+        const resumeRight = right
+        goIdle()
+        if (resumeLeft) startBlock()
+        else if (resumeRight) startWalk()
+      })
+    })
+  })
+}
 
 function pressRight() {
   if (right) return
   right = true
   document.getElementById("right").classList.add("down")
+  if (state === "slashWind" || state === "slashHit") return
   if (state === "idle") startWalk()
   else if (state === "toBlock" || state === "blocking") { left = false; document.getElementById("left").classList.remove("down"); startWalk() }
 }
@@ -124,6 +173,7 @@ function pressLeft() {
   if (left) return
   left = true
   document.getElementById("left").classList.add("down")
+  if (state === "slashWind" || state === "slashHit") return
   if (state === "idle") startBlock()
   else if (state === "toWalk" || state === "walking") { right = false; document.getElementById("right").classList.remove("down"); startBlock() }
 }
@@ -133,18 +183,33 @@ function releaseLeft() {
   document.getElementById("left").classList.remove("down")
   if (state === "toBlock" || state === "blocking") startRecover()
 }
+function pressSlash() {
+  if (state === "slashWind" || state === "slashHit") return
+  if (state === "toBlock" || state === "blocking" || state === "fromBlock") return
+  if (state === "toWalk" || state === "walking") {
+    right = false
+    document.getElementById("right").classList.remove("down")
+  }
+  startSlash()
+}
 
-document.getElementById("right").addEventListener("pointerdown", (e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); pressRight() })
-document.getElementById("right").addEventListener("pointerup", releaseRight)
-document.getElementById("right").addEventListener("pointercancel", releaseRight)
-document.getElementById("left").addEventListener("pointerdown", (e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); pressLeft() })
-document.getElementById("left").addEventListener("pointerup", releaseLeft)
-document.getElementById("left").addEventListener("pointercancel", releaseLeft)
+function bind(id, down, up) {
+  const el = document.getElementById(id)
+  el.addEventListener("pointerdown", (e) => { e.preventDefault(); el.setPointerCapture(e.pointerId); down() })
+  if (up) {
+    el.addEventListener("pointerup", up)
+    el.addEventListener("pointercancel", up)
+  }
+}
+bind("right", pressRight, releaseRight)
+bind("left", pressLeft, releaseLeft)
+bind("slashbtn", pressSlash, null)
 
 addEventListener("keydown", (e) => {
   if (e.repeat) return
   if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") { e.preventDefault(); pressRight() }
   if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") { e.preventDefault(); pressLeft() }
+  if (e.key === "ArrowUp" || e.key === " " || e.key === "w" || e.key === "W") { e.preventDefault(); pressSlash() }
 })
 addEventListener("keyup", (e) => {
   if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") releaseRight()
