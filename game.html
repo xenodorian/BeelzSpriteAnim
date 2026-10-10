@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sprite</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; touch-action: none; }
+  #sprite {
+    position: fixed; left: 50%; bottom: 0; z-index: 1;
+    height: min(78vh, 730px); width: auto;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+  .pad {
+    position: fixed; z-index: 2; bottom: 18px;
+    width: 42vw; height: 72px;
+    font: 16px/1 ui-sans-serif, system-ui, sans-serif;
+    color: #eee; background: #1a1a1a; border: 1px solid #444;
+  }
+  #left { left: 12px; }
+  #right { right: 12px; }
+  #left.down, #right.down { background: #333; }
+</style>
+</head>
+<body>
+<img id="sprite" alt="">
+<button id="left" class="pad" type="button">Block</button>
+<button id="right" class="pad" type="button">Walk</button>
+<script>
+const RAW = "https://raw.githubusercontent.com/xenodorian/BeelzSpriteAnim/main/game/"
+const src = {
+  idle: RAW + "idle.png",
+  w2: RAW + "walk_a.png",
+  w3: RAW + "walk_b.png",
+  walk: RAW + "walk.webp",
+  b9: RAW + "b9.webp",
+  b12: RAW + "b12.webp",
+  b18: RAW + "b18.webp",
+  b29: RAW + "b29.webp",
+  b32: RAW + "b32.webp",
+  b36: RAW + "b36.webp",
+}
+for (const url of Object.values(src)) { const i = new Image(); i.src = url }
+
+const sprite = document.getElementById("sprite")
+let state = "idle"
+let timer = null
+let right = false
+let left = false
+
+function show(name) {
+  if (sprite.dataset.name === name) return
+  sprite.dataset.name = name
+  sprite.src = src[name]
+}
+function clearTimer() {
+  if (timer) { clearTimeout(timer); timer = null }
+}
+function goIdle() {
+  clearTimer()
+  state = "idle"
+  show("idle")
+}
+function after(ms, fn) { timer = setTimeout(fn, ms) }
+
+function startWalk() {
+  clearTimer()
+  state = "toWalk"
+  const steps = ["w2", "w3"]
+  let i = 0
+  function next() {
+    if (!right) { goIdle(); return }
+    if (i >= steps.length) { state = "walking"; show("walk"); return }
+    show(steps[i++])
+    after(100, next)
+  }
+  next()
+}
+function startBlock() {
+  clearTimer()
+  state = "toBlock"
+  const steps = ["b9", "b12"]
+  let i = 0
+  function next() {
+    if (!left) { startRecover(); return }
+    if (i >= steps.length) { state = "blocking"; show("b18"); return }
+    show(steps[i++])
+    after(90, next)
+  }
+  next()
+}
+function startRecover() {
+  clearTimer()
+  state = "fromBlock"
+  const steps = ["b29", "b32", "b36"]
+  let i = 0
+  function next() {
+    if (i >= steps.length) {
+      goIdle()
+      if (left) startBlock()
+      else if (right) startWalk()
+      return
+    }
+    show(steps[i++])
+    after(90, next)
+  }
+  next()
+}
+
+function pressRight() {
+  if (right) return
+  right = true
+  document.getElementById("right").classList.add("down")
+  if (state === "idle") startWalk()
+  else if (state === "toBlock" || state === "blocking") { left = false; document.getElementById("left").classList.remove("down"); startWalk() }
+}
+function releaseRight() {
+  if (!right) return
+  right = false
+  document.getElementById("right").classList.remove("down")
+  if (state === "toWalk" || state === "walking") goIdle()
+}
+function pressLeft() {
+  if (left) return
+  left = true
+  document.getElementById("left").classList.add("down")
+  if (state === "idle") startBlock()
+  else if (state === "toWalk" || state === "walking") { right = false; document.getElementById("right").classList.remove("down"); startBlock() }
+}
+function releaseLeft() {
+  if (!left) return
+  left = false
+  document.getElementById("left").classList.remove("down")
+  if (state === "toBlock" || state === "blocking") startRecover()
+}
+
+document.getElementById("right").addEventListener("pointerdown", (e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); pressRight() })
+document.getElementById("right").addEventListener("pointerup", releaseRight)
+document.getElementById("right").addEventListener("pointercancel", releaseRight)
+document.getElementById("left").addEventListener("pointerdown", (e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); pressLeft() })
+document.getElementById("left").addEventListener("pointerup", releaseLeft)
+document.getElementById("left").addEventListener("pointercancel", releaseLeft)
+
+addEventListener("keydown", (e) => {
+  if (e.repeat) return
+  if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") { e.preventDefault(); pressRight() }
+  if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") { e.preventDefault(); pressLeft() }
+})
+addEventListener("keyup", (e) => {
+  if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") releaseRight()
+  if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") releaseLeft()
+})
+goIdle()
+</script>
+</body>
+</html>
