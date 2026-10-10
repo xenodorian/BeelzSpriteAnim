@@ -58,6 +58,9 @@ const src = {
   e1: RAW + "energy.png",
   e2: RAW + "energy-h.png",
   e3: RAW + "energy-v.png",
+  f1v: RAW + "f1-vblur.webp",
+  f4v: RAW + "f4-vblur.webp",
+  f4: RAW + "f4.webp",
 }
 for (const url of Object.values(src)) { const i = new Image(); i.src = url }
 
@@ -69,6 +72,7 @@ let timer = null
 let energyTimer = null
 let right = false
 let left = false
+let up = false
 
 function show(name) {
   if (sprite.dataset.name === name) return
@@ -151,6 +155,7 @@ function startRecover() {
       goIdle()
       if (left) startBlock()
       else if (right) startWalk()
+      else if (up) startUp()
       return
     }
     show(steps[i++])
@@ -161,9 +166,11 @@ function startRecover() {
 function finishSlash() {
   const resumeLeft = left
   const resumeRight = right
+  const resumeUp = up
   goIdle()
   if (resumeLeft) startBlock()
   else if (resumeRight) startWalk()
+  else if (resumeUp) startUp()
 }
 function startSlash() {
   clearTimer()
@@ -204,11 +211,27 @@ function startSlash() {
   windNext()
 }
 
+function startUp() {
+  clearTimer()
+  setSlash(false)
+  state = "toUp"
+  const steps = ["f1v", "f4v"]
+  let i = 0
+  function next() {
+    if (!up) { goIdle(); return }
+    if (i >= steps.length) { state = "hold4"; show("f4"); return }
+    show(steps[i++])
+    after(50, next)
+  }
+  next()
+}
+
 function pressRight() {
   if (right) return
   right = true
   if (state === "slashWind" || state === "slashHit" || state === "slashBack") return
-  if (state === "idle") startWalk()
+  if (state === "toUp" || state === "hold4") up = false
+  if (state === "idle" || state === "toUp" || state === "hold4") startWalk()
   else if (state === "toBlock" || state === "blocking") { left = false; startWalk() }
 }
 function releaseRight() {
@@ -220,7 +243,8 @@ function pressLeft() {
   if (left) return
   left = true
   if (state === "slashWind" || state === "slashHit" || state === "slashBack") return
-  if (state === "idle") startBlock()
+  if (state === "toUp" || state === "hold4") up = false
+  if (state === "idle" || state === "toUp" || state === "hold4") startBlock()
   else if (state === "toWalk" || state === "walking") { right = false; startBlock() }
 }
 function releaseLeft() {
@@ -232,7 +256,21 @@ function pressSlash() {
   if (state === "slashWind" || state === "slashHit" || state === "slashBack") return
   if (state === "toBlock" || state === "blocking" || state === "fromBlock") return
   if (state === "toWalk" || state === "walking") right = false
+  if (state === "toUp" || state === "hold4") up = false
   startSlash()
+}
+function pressUp() {
+  if (up) return
+  up = true
+  if (state === "slashWind" || state === "slashHit" || state === "slashBack") return
+  if (state === "toBlock" || state === "blocking" || state === "fromBlock") return
+  if (state === "toWalk" || state === "walking") right = false
+  startUp()
+}
+function releaseUp() {
+  if (!up) return
+  up = false
+  if (state === "toUp" || state === "hold4") goIdle()
 }
 
 addEventListener("keydown", (e) => {
@@ -240,10 +278,12 @@ addEventListener("keydown", (e) => {
   if (e.key === "ArrowRight") { e.preventDefault(); pressRight() }
   if (e.key === "ArrowLeft") { e.preventDefault(); pressLeft() }
   if (e.key === "ArrowDown") { e.preventDefault(); pressSlash() }
+  if (e.key === "ArrowUp") { e.preventDefault(); pressUp() }
 })
 addEventListener("keyup", (e) => {
   if (e.key === "ArrowRight") releaseRight()
   if (e.key === "ArrowLeft") releaseLeft()
+  if (e.key === "ArrowUp") releaseUp()
 })
 goIdle()
 </script>
