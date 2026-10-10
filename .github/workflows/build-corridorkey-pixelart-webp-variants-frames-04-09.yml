@@ -68,7 +68,15 @@ jobs:
                   lossless=True,
                   method=6,
                 )
-              print(f"{filename}: {frames[0].width}x{frames[0].height}, {len(frames)} frames, 100 ms/frame")
+              with Image.open(filename) as check:
+                  durations = []
+                  for index in range(check.n_frames):
+                      check.seek(index)
+                      durations.append(check.info.get("duration"))
+                  print(f"VERIFY {filename}: frames={check.n_frames}, durations_ms={durations}, size={check.size}")
+                  if check.n_frames != 6 or durations != [100] * 6:
+                      raise SystemExit(f"Encoded timing/frame verification failed for {filename}: {check.n_frames} frames, {durations}")
+              print(f"{filename}: {frames[0].width}x{frames[0].height}, {len(frames)} frames, verified 100 ms/frame")
               for frame in frames:
                   frame.close()
 
