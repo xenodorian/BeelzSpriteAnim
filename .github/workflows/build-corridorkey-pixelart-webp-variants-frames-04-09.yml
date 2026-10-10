@@ -63,12 +63,12 @@ jobs:
                   format="WEBP",
                   save_all=True,
                   append_images=frames[1:],
-                  duration=250,
+                  duration=100,
                   loop=0,
                   lossless=True,
                   method=6,
                 )
-              print(f"{filename}: {frames[0].width}x{frames[0].height}, {len(frames)} frames, 250 ms/frame")
+              print(f"{filename}: {frames[0].width}x{frames[0].height}, {len(frames)} frames, 100 ms/frame")
               for frame in frames:
                   frame.close()
 
