@@ -59,8 +59,8 @@ const src = {
   e2: RAW + "energy-h.png",
   e3: RAW + "energy-v.png",
   f1v: RAW + "f1-vblur.webp",
-  f4v: RAW + "f4-vblur.webp",
-  f4: RAW + "f4.webp",
+  f6v: RAW + "f6-vblur.webp",
+  f6: RAW + "f6.webp",
 }
 for (const url of Object.values(src)) { const i = new Image(); i.src = url }
 
@@ -215,11 +215,11 @@ function startUp() {
   clearTimer()
   setSlash(false)
   state = "toUp"
-  const steps = ["f1v", "f4v"]
+  const steps = ["f1v", "f6v"]
   let i = 0
   function next() {
     if (!up) { goIdle(); return }
-    if (i >= steps.length) { state = "hold4"; show("f4"); return }
+    if (i >= steps.length) { state = "hold4"; show("f6"); return }
     show(steps[i++])
     after(50, next)
   }
