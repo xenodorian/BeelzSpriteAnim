@@ -1,0 +1,63 @@
+name: Build corridor key frame contact sheet
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frames/corridorkey/*.png"
+      - ".github/workflows/build-corridorkey-contact-sheet.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Pillow
+        run: python -m pip install pillow
+      - name: Create contact sheet of all frames
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageOps, ImageDraw
+          paths = sorted(Path("frames/corridorkey").glob("f_*.png"))
+          if not paths:
+              raise SystemExit("No frames found")
+          thumbs = []
+          cell_w, cell_h, label_h, cols = 240, 240, 28, 4
+          for path in paths:
+              with Image.open(path) as source:
+                  im = source.convert("RGBA")
+                  im.thumbnail((cell_w - 12, cell_h - 12), Image.Resampling.LANCZOS)
+                  tile = Image.new("RGBA", (cell_w, cell_h), (35, 35, 35, 255))
+                  tile.alpha_composite(im, ((cell_w - im.width)//2, (cell_h - im.height)//2))
+                  thumbs.append((path.name, tile.convert("RGB")))
+          rows = (len(thumbs) + cols - 1) // cols
+          sheet = Image.new("RGB", (cols * cell_w, rows * (cell_h + label_h)), (245,245,245))
+          draw = ImageDraw.Draw(sheet)
+          for i, (name, tile) in enumerate(thumbs):
+              x, y = (i % cols) * cell_w, (i // cols) * (cell_h + label_h)
+              sheet.paste(tile, (x, y))
+              draw.text((x + 8, y + cell_h + 6), name, fill=(20,20,20))
+          sheet.save("corridorkey_frames_contact_sheet.png", optimize=True)
+          print(f"Created contact sheet for {len(thumbs)} frames in {cols} columns")
+          PY
+      - name: Commit contact sheet
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add corridorkey_frames_contact_sheet.png
+          if git diff --cached --quiet; then
+            echo "Contact sheet unchanged"
+          else
+            git commit -m "Create corridor key frame contact sheet"
+            git push
+          fi
