@@ -62,3 +62,5 @@ jobs:
             git commit -m "Build corridor key GIF from frames 4-9"
             git push
           fi
+
+# Rebuild trigger: restore the frames 04-09 GIF.
