@@ -6,8 +6,8 @@
 <title>1:1 sprite on a screen-sized canvas</title>
 <style>
   html, body { margin: 0; height: 100%; background: #16181e; overflow: hidden; }
-  canvas { display: block; }
-  #sprite { position: fixed; left: 0; top: 0; z-index: 0; }
+  canvas { position: fixed; left: 0; top: 0; z-index: 1; }
+  #sprite { position: fixed; left: 0; top: 0; opacity: 0; pointer-events: none; z-index: 0; }
   #bar {
     position: fixed; z-index: 2; top: 12px; left: 12px;
     display: flex; gap: 8px; align-items: center;
@@ -18,11 +18,6 @@
     padding: 8px 10px; cursor: pointer;
   }
   #file { display: none; }
-  #readout {
-    position: fixed; z-index: 2; right: 12px; bottom: 12px;
-    font: 13px/1.4 ui-monospace, monospace; color: #c8c8c8;
-    background: #000a; padding: 8px 10px;
-  }
 </style>
 </head>
 <body>
@@ -30,18 +25,14 @@
   <button id="full" type="button">Fullscreen</button>
   <label>Open sprite<input id="file" type="file" accept="image/webp,image/gif,image/png,image/*"></label>
 </div>
-<div id="readout"></div>
 <img id="sprite" alt="" src="https://raw.githubusercontent.com/xenodorian/BeelzSpriteAnim/main/corridorkey_frames_04-09_pixelart_h256_150ms.webp">
 <canvas id="view"></canvas>
 <script>
 const canvas = document.getElementById("view")
 const ctx = canvas.getContext("2d", { alpha: false })
 const sprite = document.getElementById("sprite")
-const readout = document.getElementById("readout")
 
 const SKY = "#16181e"
-const GROUND = "#101210"
-const HORIZON = "#3a3e36"
 // Lowest boot sole in the 168×256 cell. Other images sit on their own bottom edge.
 const KNOWN_SOLE = 240
 
@@ -53,6 +44,20 @@ function screenPixels() {
     cssH: window.screen.height,
     pxW: Math.round(window.screen.width * dpr),
     pxH: Math.round(window.screen.height * dpr),
+  }
+}
+
+function visibleBox(dpr) {
+  const view = window.visualViewport
+  const cssX = view ? view.offsetLeft : 0
+  const cssY = view ? view.offsetTop : 0
+  const cssW = view ? view.width : window.innerWidth
+  const cssH = view ? view.height : window.innerHeight
+  return {
+    x: Math.round(cssX * dpr),
+    y: Math.round(cssY * dpr),
+    w: Math.round(cssW * dpr),
+    h: Math.round(cssH * dpr),
   }
 }
 
@@ -70,28 +75,17 @@ function frame() {
   if (canvas.width !== pxW || canvas.height !== pxH) fit()
   ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.imageSmoothingEnabled = false
-
   ctx.fillStyle = SKY
   ctx.fillRect(0, 0, pxW, pxH)
-  const groundY = Math.round(pxH * 0.8)
-  ctx.fillStyle = GROUND
-  ctx.fillRect(0, groundY, pxW, pxH - groundY)
-  ctx.fillStyle = HORIZON
-  ctx.fillRect(0, groundY, pxW, 1)
 
   const sw = sprite.naturalWidth
   const sh = sprite.naturalHeight
   if (sw && sh) {
+    const view = visibleBox(dpr)
     const sole = (sw === 168 && sh === 256) ? KNOWN_SOLE : sh
-    const x = Math.round((pxW - sw) / 2)
-    const y = Math.round(groundY - sole)
+    const x = view.x + Math.round((view.w - sw) / 2)
+    const y = view.y + view.h - sole
     ctx.drawImage(sprite, x, y)
-    readout.textContent =
-      "canvas " + pxW + "×" + pxH + " device px"
-      + "  ·  sprite " + sw + "×" + sh + " at 1:1"
-      + "  ·  dpr " + dpr
-  } else {
-    readout.textContent = "canvas " + pxW + "×" + pxH + " device px  ·  waiting for sprite"
   }
   requestAnimationFrame(frame)
 }
