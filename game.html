@@ -51,6 +51,7 @@ const src = {
   b31: RAW + "b31.webp",
   b35: RAW + "b35.webp",
   b33: RAW + "b33.webp",
+  b33b: RAW + "b33-blur.webp",
   b8: RAW + "b8.webp",
   b10: RAW + "b10.webp",
   b37: RAW + "b37.webp",
@@ -177,11 +178,12 @@ function startSlash() {
   }
   function hit() {
     state = "slashHit"
-    show("b33")
+    show("b33b")
     setSlash(true)
     after(100, () => {
       if (state !== "slashHit") return
       setSlash(false)
+      show("b33")
       after(100, () => {
         if (state !== "slashHit") return
         back()
