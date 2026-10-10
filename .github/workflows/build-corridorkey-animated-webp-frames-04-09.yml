@@ -1,0 +1,67 @@
+name: Build corridor key animated WebP frames 4-9
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-corridorkey-animated-webp-frames-04-09.yml"
+      - "frames/corridorkey/f_0[4-9].png"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Pillow
+        run: python -m pip install pillow
+      - name: Compile frames 4-9 into animated WebP
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+
+          paths = [Path("frames/corridorkey") / f"f_{i:02d}.png" for i in range(4, 10)]
+          missing = [str(p) for p in paths if not p.is_file()]
+          if missing:
+              raise SystemExit("Missing frames: " + ", ".join(missing))
+
+          frames = []
+          for path in paths:
+              with Image.open(path) as im:
+                  frames.append(im.convert("RGBA"))
+
+          output = "corridorkey_frames_04-09.webp"
+          frames[0].save(
+              output,
+              format="WEBP",
+              save_all=True,
+              append_images=frames[1:],
+              duration=100,
+              loop=0,
+              lossless=True,
+              method=6,
+          )
+          print(f"{output}: {frames[0].width}x{frames[0].height}, {len(frames)} frames")
+          for frame in frames:
+              frame.close()
+          PY
+      - name: Commit animated WebP
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+users.noreply.github.com"
+          git add corridorkey_frames_04-09.webp
+          if git diff --cached --quiet; then
+            echo "Animated WebP unchanged"
+          else
+            git commit -m "Generate animated WebP for corridor key frames 4-9"
+            git push
+          fi
